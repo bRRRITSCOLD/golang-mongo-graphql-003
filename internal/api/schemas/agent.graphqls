@@ -1,0 +1,26 @@
+type Agent {
+  _id: ID!
+  agentId: String!
+  createdDate: Time!
+  updatedDate: Time!
+  name: String!
+  email: String!
+  authors: [Author]!
+}
+
+extend type Query {
+  agent(agentId: String!): Agent!
+  agents: [Agent]!
+}
+
+input CreateAgentInput {
+  name: String!
+  email: String!
+  authorIds: [String]
+}
+
+extend type Mutation {
+  createAgent(input: CreateAgentInput!): Agent!
+}
+
+scalar Time

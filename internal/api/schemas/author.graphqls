@@ -1,0 +1,26 @@
+type Author {
+ _id: ID!
+ authorId: String!
+ createdDate: Time!
+ updatedDate: Time!
+ name: String!
+ website: String!
+ agent: Agent!
+ books: [Book!]!
+}
+
+extend type Query {
+  author(authorId: String!): Author!
+  authors: [Author!]!
+}
+
+input CreateAuthorInput {
+  name: String!
+  website: String!
+  agentId: String
+  bookIds: [String]
+}
+
+extend type Mutation {
+  createAuthor(input: CreateAuthorInput): Author!
+}

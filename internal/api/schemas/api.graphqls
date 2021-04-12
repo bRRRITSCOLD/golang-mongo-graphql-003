@@ -1,0 +1,16 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type APIHealth {
+  Status: String!
+}
+
+type Query {
+  healthCheck: APIHealth!
+}
+
+type Mutation {
+  healthCheck: APIHealth!
+}
