@@ -12,43 +12,12 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 )
 
-// const defaultPort = "8080"
-
-// func main() {
-// 	port := os.Getenv("PORT")
-// 	if port == "" {
-// 		port = defaultPort
-// 	}
-
-// 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &api.Resolver{}}))
-
-// 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-// 	http.Handle("/query", srv)
-
-// 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-// 	log.Fatal(http.ListenAndServe(":"+port, nil))
-// }
-
-// createdComments, createCommentssErr := comment.CreateComments([]comment.Comment{
-// 	{
-// 		IssueID: input.IssueID,
-// 		Body:    input.Body,
-// 	},
-// })
-// if createCommentssErr != nil {
-// 	return nil, createCommentssErr
-// }
-// return comment.PointerComment(createdComments[0]), nil
-
-// "github.com/99designs/gqlgen/graphql/handler"
-// "github.com/99designs/gqlgen/graphql/playground"
-
 // Defining the Graphql handler
-func graphqlHandler(dl dataloaders.Retriever) gin.HandlerFunc {
+func graphqlHandler(dataloadersRetriever dataloaders.Retriever) gin.HandlerFunc {
 	// NewExecutableSchema and Config are in the generated.go file
 	// Resolver is in the resolver.go file
 	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &api.Resolver{
-		DataLoaders: dl,
+		DataLoaders: dataloadersRetriever,
 	}}))
 
 	return func(c *gin.Context) {
@@ -66,13 +35,11 @@ func playgroundHandler() gin.HandlerFunc {
 }
 
 func main() {
-	// initialize the dataloaders
-	dl := dataloaders.NewRetriever() // <- here we initialize the dataloader.Retriever
 	// Setting up Gin
 	r := gin.Default()
 	r.Use(dataloaders.Middleware())
 	r.Use(middleware.GinContextToContextMiddleware())
-	r.POST("/query", graphqlHandler(dl))
+	r.POST("/query", graphqlHandler(dataloaders.NewRetriever() /* <- here we initialize the dataloader.Retriever */))
 	r.GET("/", playgroundHandler())
 	r.Run()
 }
