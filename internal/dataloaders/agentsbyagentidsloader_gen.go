@@ -9,8 +9,8 @@ import (
 	"golang-mongo-graphql-003/internal/models"
 )
 
-// AgentLoaderConfig captures the config to create a new AgentLoader
-type AgentLoaderConfig struct {
+// AgentsByAgentIdsLoaderConfig captures the config to create a new AgentsByAgentIdsLoader
+type AgentsByAgentIdsLoaderConfig struct {
 	// Fetch is a method that provides the data for the loader
 	Fetch func(keys []string) ([]*models.Agent, []error)
 
@@ -21,17 +21,17 @@ type AgentLoaderConfig struct {
 	MaxBatch int
 }
 
-// NewAgentLoader creates a new AgentLoader given a fetch, wait, and maxBatch
-func NewAgentLoader(config AgentLoaderConfig) *AgentLoader {
-	return &AgentLoader{
+// NewAgentsByAgentIdsLoader creates a new AgentsByAgentIdsLoader given a fetch, wait, and maxBatch
+func NewAgentsByAgentIdsLoader(config AgentsByAgentIdsLoaderConfig) *AgentsByAgentIdsLoader {
+	return &AgentsByAgentIdsLoader{
 		fetch:    config.Fetch,
 		wait:     config.Wait,
 		maxBatch: config.MaxBatch,
 	}
 }
 
-// AgentLoader batches and caches requests
-type AgentLoader struct {
+// AgentsByAgentIdsLoader batches and caches requests
+type AgentsByAgentIdsLoader struct {
 	// this method provides the data for the loader
 	fetch func(keys []string) ([]*models.Agent, []error)
 
@@ -48,13 +48,13 @@ type AgentLoader struct {
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
-	batch *agentLoaderBatch
+	batch *agentsByAgentIdsLoaderBatch
 
 	// mutex to prevent races
 	mu sync.Mutex
 }
 
-type agentLoaderBatch struct {
+type agentsByAgentIdsLoaderBatch struct {
 	keys    []string
 	data    []*models.Agent
 	error   []error
@@ -63,14 +63,14 @@ type agentLoaderBatch struct {
 }
 
 // Load a Agent by key, batching and caching will be applied automatically
-func (l *AgentLoader) Load(key string) (*models.Agent, error) {
+func (l *AgentsByAgentIdsLoader) Load(key string) (*models.Agent, error) {
 	return l.LoadThunk(key)()
 }
 
 // LoadThunk returns a function that when called will block waiting for a Agent.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *AgentLoader) LoadThunk(key string) func() (*models.Agent, error) {
+func (l *AgentsByAgentIdsLoader) LoadThunk(key string) func() (*models.Agent, error) {
 	l.mu.Lock()
 	if it, ok := l.cache[key]; ok {
 		l.mu.Unlock()
@@ -79,7 +79,7 @@ func (l *AgentLoader) LoadThunk(key string) func() (*models.Agent, error) {
 		}
 	}
 	if l.batch == nil {
-		l.batch = &agentLoaderBatch{done: make(chan struct{})}
+		l.batch = &agentsByAgentIdsLoaderBatch{done: make(chan struct{})}
 	}
 	batch := l.batch
 	pos := batch.keyIndex(l, key)
@@ -113,7 +113,7 @@ func (l *AgentLoader) LoadThunk(key string) func() (*models.Agent, error) {
 
 // LoadAll fetches many keys at once. It will be broken into appropriate sized
 // sub batches depending on how the loader is configured
-func (l *AgentLoader) LoadAll(keys []string) ([]*models.Agent, []error) {
+func (l *AgentsByAgentIdsLoader) LoadAll(keys []string) ([]*models.Agent, []error) {
 	results := make([]func() (*models.Agent, error), len(keys))
 
 	for i, key := range keys {
@@ -131,7 +131,7 @@ func (l *AgentLoader) LoadAll(keys []string) ([]*models.Agent, []error) {
 // LoadAllThunk returns a function that when called will block waiting for a Agents.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *AgentLoader) LoadAllThunk(keys []string) func() ([]*models.Agent, []error) {
+func (l *AgentsByAgentIdsLoader) LoadAllThunk(keys []string) func() ([]*models.Agent, []error) {
 	results := make([]func() (*models.Agent, error), len(keys))
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
@@ -149,7 +149,7 @@ func (l *AgentLoader) LoadAllThunk(keys []string) func() ([]*models.Agent, []err
 // Prime the cache with the provided key and value. If the key already exists, no change is made
 // and false is returned.
 // (To forcefully prime the cache, clear the key first with loader.clear(key).prime(key, value).)
-func (l *AgentLoader) Prime(key string, value *models.Agent) bool {
+func (l *AgentsByAgentIdsLoader) Prime(key string, value *models.Agent) bool {
 	l.mu.Lock()
 	var found bool
 	if _, found = l.cache[key]; !found {
@@ -163,13 +163,13 @@ func (l *AgentLoader) Prime(key string, value *models.Agent) bool {
 }
 
 // Clear the value at key from the cache, if it exists
-func (l *AgentLoader) Clear(key string) {
+func (l *AgentsByAgentIdsLoader) Clear(key string) {
 	l.mu.Lock()
 	delete(l.cache, key)
 	l.mu.Unlock()
 }
 
-func (l *AgentLoader) unsafeSet(key string, value *models.Agent) {
+func (l *AgentsByAgentIdsLoader) unsafeSet(key string, value *models.Agent) {
 	if l.cache == nil {
 		l.cache = map[string]*models.Agent{}
 	}
@@ -178,7 +178,7 @@ func (l *AgentLoader) unsafeSet(key string, value *models.Agent) {
 
 // keyIndex will return the location of the key in the batch, if its not found
 // it will add the key to the batch
-func (b *agentLoaderBatch) keyIndex(l *AgentLoader, key string) int {
+func (b *agentsByAgentIdsLoaderBatch) keyIndex(l *AgentsByAgentIdsLoader, key string) int {
 	for i, existingKey := range b.keys {
 		if key == existingKey {
 			return i
@@ -202,7 +202,7 @@ func (b *agentLoaderBatch) keyIndex(l *AgentLoader, key string) int {
 	return pos
 }
 
-func (b *agentLoaderBatch) startTimer(l *AgentLoader) {
+func (b *agentsByAgentIdsLoaderBatch) startTimer(l *AgentsByAgentIdsLoader) {
 	time.Sleep(l.wait)
 	l.mu.Lock()
 
@@ -218,7 +218,7 @@ func (b *agentLoaderBatch) startTimer(l *AgentLoader) {
 	b.end(l)
 }
 
-func (b *agentLoaderBatch) end(l *AgentLoader) {
+func (b *agentsByAgentIdsLoaderBatch) end(l *AgentsByAgentIdsLoader) {
 	b.data, b.error = l.fetch(b.keys)
 	close(b.done)
 }

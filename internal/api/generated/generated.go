@@ -499,7 +499,6 @@ extend type Query {
 input CreateAgentInput {
   name: String!
   email: String!
-  authorIds: [String]
 }
 
 extend type Mutation {
@@ -543,7 +542,6 @@ input CreateAuthorInput {
   name: String!
   website: String!
   agentId: String
-  bookIds: [String]
 }
 
 extend type Mutation {
@@ -3174,14 +3172,6 @@ func (ec *executionContext) unmarshalInputCreateAgentInput(ctx context.Context, 
 			if err != nil {
 				return it, err
 			}
-		case "authorIds":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("authorIds"))
-			it.AuthorIDs, err = ec.unmarshalOString2ᚕstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		}
 	}
 
@@ -3215,14 +3205,6 @@ func (ec *executionContext) unmarshalInputCreateAuthorInput(ctx context.Context,
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("agentId"))
 			it.AgentID, err = ec.unmarshalOString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "bookIds":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bookIds"))
-			it.BookIDs, err = ec.unmarshalOString2ᚕstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4533,42 +4515,6 @@ func (ec *executionContext) unmarshalOString2string(ctx context.Context, v inter
 
 func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	return graphql.MarshalString(v)
-}
-
-func (ec *executionContext) unmarshalOString2ᚕstring(ctx context.Context, v interface{}) ([]string, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]string, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalOString2string(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalOString2ᚕstring(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalOString2string(ctx, sel, v[i])
-	}
-
-	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

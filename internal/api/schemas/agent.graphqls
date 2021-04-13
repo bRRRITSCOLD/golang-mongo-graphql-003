@@ -16,7 +16,6 @@ extend type Query {
 input CreateAgentInput {
   name: String!
   email: String!
-  authorIds: [String]
 }
 
 extend type Mutation {

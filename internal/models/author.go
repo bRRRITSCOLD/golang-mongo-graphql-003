@@ -12,17 +12,13 @@ type Author struct {
 	UpdatedDate time.Time `json:"updatedDate" bson:"updatedDate,omitempty"`
 	Name        string    `json:"name" bson:"name,omitempty"`
 	Website     string    `json:"website" bson:"website,omitempty"`
-	// Agent       Agent     `json:"agent" bson:"-"`
-	AgentID string `json:"agentId" bson:"agentId,omitempty"`
-	// Books       []Book    `json:"books" bson:"-"`
-	BookIDs []string `json:"bookIds" bson:"bookIds,omitempty"`
+	AgentID     string    `json:"agentId" bson:"agentId,omitempty"`
 }
 
 type CreateAuthorInput struct {
-	Name    string   `json:"name"`
-	Website string   `json:"website"`
-	AgentID string   `json:"agentId"`
-	BookIDs []string `json:"bookIds"`
+	Name    string `json:"name"`
+	Website string `json:"website"`
+	AgentID string `json:"agentId"`
 }
 
 func NewAuthor(author Author) Author {
@@ -34,7 +30,6 @@ func NewAuthor(author Author) Author {
 		Name:        author.Name,
 		Website:     author.Website,
 		AgentID:     author.AgentID,
-		BookIDs:     author.BookIDs,
 	}
 }
 

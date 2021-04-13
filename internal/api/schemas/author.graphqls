@@ -18,7 +18,6 @@ input CreateAuthorInput {
   name: String!
   website: String!
   agentId: String
-  bookIds: [String]
 }
 
 extend type Mutation {

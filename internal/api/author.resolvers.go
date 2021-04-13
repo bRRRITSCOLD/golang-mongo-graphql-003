@@ -8,13 +8,18 @@ import (
 	"fmt"
 	"golang-mongo-graphql-003/internal/api/generated"
 	"golang-mongo-graphql-003/internal/data_management"
+	"golang-mongo-graphql-003/internal/middleware"
 	"golang-mongo-graphql-003/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 func (r *authorResolver) Agent(ctx context.Context, obj *models.Author) (*models.Agent, error) {
-	panic(fmt.Errorf("not implemented"))
+	gc, err := middleware.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.DataLoaders.Retrieve(gc.Request.Context()).AgentsByAgentIds.Load(obj.AgentID)
 }
 
 func (r *authorResolver) Books(ctx context.Context, obj *models.Author) ([]*models.Book, error) {
@@ -27,7 +32,7 @@ func (r *mutationResolver) CreateAuthor(ctx context.Context, input *models.Creat
 			Name:    input.Name,
 			Website: input.Website,
 			AgentID: input.AgentID,
-			BookIDs: input.BookIDs,
+			// BookIDs: input.BookIDs,
 		},
 	})
 	if createAuthorsErr != nil {

@@ -20,9 +20,9 @@ func (r *agentResolver) Authors(ctx context.Context, obj *models.Agent) ([]*mode
 func (r *mutationResolver) CreateAgent(ctx context.Context, input models.CreateAgentInput) (*models.Agent, error) {
 	createdAgents, createAgentsErr := data_management.CreateAgents([]models.Agent{
 		{
-			Name:      input.Name,
-			Email:     input.Email,
-			AuthorIDs: input.AuthorIDs,
+			Name:  input.Name,
+			Email: input.Email,
+			// AuthorIDs: input.AuthorIDs,
 		},
 	})
 	if createAgentsErr != nil {

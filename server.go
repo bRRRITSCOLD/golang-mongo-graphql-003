@@ -3,6 +3,7 @@ package main
 import (
 	"golang-mongo-graphql-003/internal/api"
 	"golang-mongo-graphql-003/internal/api/generated"
+	"golang-mongo-graphql-003/internal/dataloaders"
 	"golang-mongo-graphql-003/internal/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -43,10 +44,12 @@ import (
 // "github.com/99designs/gqlgen/graphql/playground"
 
 // Defining the Graphql handler
-func graphqlHandler() gin.HandlerFunc {
+func graphqlHandler(dl dataloaders.Retriever) gin.HandlerFunc {
 	// NewExecutableSchema and Config are in the generated.go file
 	// Resolver is in the resolver.go file
-	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &api.Resolver{}}))
+	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &api.Resolver{
+		DataLoaders: dl,
+	}}))
 
 	return func(c *gin.Context) {
 		h.ServeHTTP(c.Writer, c.Request)
@@ -63,10 +66,13 @@ func playgroundHandler() gin.HandlerFunc {
 }
 
 func main() {
+	// initialize the dataloaders
+	dl := dataloaders.NewRetriever() // <- here we initialize the dataloader.Retriever
 	// Setting up Gin
 	r := gin.Default()
+	r.Use(dataloaders.Middleware())
 	r.Use(middleware.GinContextToContextMiddleware())
-	r.POST("/query", graphqlHandler())
+	r.POST("/query", graphqlHandler(dl))
 	r.GET("/", playgroundHandler())
 	r.Run()
 }
