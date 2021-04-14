@@ -9,4 +9,5 @@ This is meant to be a template/example for golang + gin + gqlgen (graphql) + dat
 1. Ensure all go modules are installed by running ```$ go mod download```
 2. Ensure all necessary local infrastructure is active by running ```$ ./scripts/infra/local/start``` - this ensures mongodb is up and running
 3. ***Coming Soon*** (scripts to seed data into mongo)
-4. TODO: add additional steps - going to sleep for now :)
+4. Run server with ```$ go run server.go``` and visit http://localhost:8080/ for graphql playground
+5. TODO: add additional steps - going to sleep for now :)
