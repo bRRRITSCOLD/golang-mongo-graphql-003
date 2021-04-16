@@ -12,6 +12,7 @@ type Agent struct {
 	UpdatedDate time.Time `json:"updatedDate" bson:"updatedDate,omitempty"`
 	Name        string    `json:"name" bson:"name,omitempty"`
 	Email       string    `json:"email" bson:"email,omitempty"`
+	AuthorIDs   []string  `json:"authorIds" bson:"authorIds,omitempty"`
 }
 
 type CreateAgentInput struct {
@@ -27,6 +28,7 @@ func NewAgent(agent Agent) Agent {
 		UpdatedDate: agent.UpdatedDate,
 		Name:        agent.Name,
 		Email:       agent.Email,
+		AuthorIDs:   agent.AuthorIDs,
 	}
 }
 

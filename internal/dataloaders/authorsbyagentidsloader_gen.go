@@ -9,10 +9,10 @@ import (
 	"golang-mongo-graphql-003/internal/models"
 )
 
-// AgentsByAgentIdsLoaderConfig captures the config to create a new AgentsByAgentIdsLoader
-type AgentsByAgentIdsLoaderConfig struct {
+// AuthorsByAgentIdsLoaderConfig captures the config to create a new AuthorsByAgentIdsLoader
+type AuthorsByAgentIdsLoaderConfig struct {
 	// Fetch is a method that provides the data for the loader
-	Fetch func(keys []string) ([]*models.Agent, []error)
+	Fetch func(keys []string) ([][]*models.Author, []error)
 
 	// Wait is how long wait before sending a batch
 	Wait time.Duration
@@ -21,19 +21,19 @@ type AgentsByAgentIdsLoaderConfig struct {
 	MaxBatch int
 }
 
-// NewAgentsByAgentIdsLoader creates a new AgentsByAgentIdsLoader given a fetch, wait, and maxBatch
-func NewAgentsByAgentIdsLoader(config AgentsByAgentIdsLoaderConfig) *AgentsByAgentIdsLoader {
-	return &AgentsByAgentIdsLoader{
+// NewAuthorsByAgentIdsLoader creates a new AuthorsByAgentIdsLoader given a fetch, wait, and maxBatch
+func NewAuthorsByAgentIdsLoader(config AuthorsByAgentIdsLoaderConfig) *AuthorsByAgentIdsLoader {
+	return &AuthorsByAgentIdsLoader{
 		fetch:    config.Fetch,
 		wait:     config.Wait,
 		maxBatch: config.MaxBatch,
 	}
 }
 
-// AgentsByAgentIdsLoader batches and caches requests
-type AgentsByAgentIdsLoader struct {
+// AuthorsByAgentIdsLoader batches and caches requests
+type AuthorsByAgentIdsLoader struct {
 	// this method provides the data for the loader
-	fetch func(keys []string) ([]*models.Agent, []error)
+	fetch func(keys []string) ([][]*models.Author, []error)
 
 	// how long to done before sending a batch
 	wait time.Duration
@@ -44,51 +44,51 @@ type AgentsByAgentIdsLoader struct {
 	// INTERNAL
 
 	// lazily created cache
-	cache map[string]*models.Agent
+	cache map[string][]*models.Author
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
-	batch *agentsByAgentIdsLoaderBatch
+	batch *authorsByAgentIdsLoaderBatch
 
 	// mutex to prevent races
 	mu sync.Mutex
 }
 
-type agentsByAgentIdsLoaderBatch struct {
+type authorsByAgentIdsLoaderBatch struct {
 	keys    []string
-	data    []*models.Agent
+	data    [][]*models.Author
 	error   []error
 	closing bool
 	done    chan struct{}
 }
 
-// Load a Agent by key, batching and caching will be applied automatically
-func (l *AgentsByAgentIdsLoader) Load(key string) (*models.Agent, error) {
+// Load a Author by key, batching and caching will be applied automatically
+func (l *AuthorsByAgentIdsLoader) Load(key string) ([]*models.Author, error) {
 	return l.LoadThunk(key)()
 }
 
-// LoadThunk returns a function that when called will block waiting for a Agent.
+// LoadThunk returns a function that when called will block waiting for a Author.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *AgentsByAgentIdsLoader) LoadThunk(key string) func() (*models.Agent, error) {
+func (l *AuthorsByAgentIdsLoader) LoadThunk(key string) func() ([]*models.Author, error) {
 	l.mu.Lock()
 	if it, ok := l.cache[key]; ok {
 		l.mu.Unlock()
-		return func() (*models.Agent, error) {
+		return func() ([]*models.Author, error) {
 			return it, nil
 		}
 	}
 	if l.batch == nil {
-		l.batch = &agentsByAgentIdsLoaderBatch{done: make(chan struct{})}
+		l.batch = &authorsByAgentIdsLoaderBatch{done: make(chan struct{})}
 	}
 	batch := l.batch
 	pos := batch.keyIndex(l, key)
 	l.mu.Unlock()
 
-	return func() (*models.Agent, error) {
+	return func() ([]*models.Author, error) {
 		<-batch.done
 
-		var data *models.Agent
+		var data []*models.Author
 		if pos < len(batch.data) {
 			data = batch.data[pos]
 		}
@@ -113,72 +113,73 @@ func (l *AgentsByAgentIdsLoader) LoadThunk(key string) func() (*models.Agent, er
 
 // LoadAll fetches many keys at once. It will be broken into appropriate sized
 // sub batches depending on how the loader is configured
-func (l *AgentsByAgentIdsLoader) LoadAll(keys []string) ([]*models.Agent, []error) {
-	results := make([]func() (*models.Agent, error), len(keys))
+func (l *AuthorsByAgentIdsLoader) LoadAll(keys []string) ([][]*models.Author, []error) {
+	results := make([]func() ([]*models.Author, error), len(keys))
 
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
 
-	agents := make([]*models.Agent, len(keys))
+	authors := make([][]*models.Author, len(keys))
 	errors := make([]error, len(keys))
 	for i, thunk := range results {
-		agents[i], errors[i] = thunk()
+		authors[i], errors[i] = thunk()
 	}
-	return agents, errors
+	return authors, errors
 }
 
-// LoadAllThunk returns a function that when called will block waiting for a Agents.
+// LoadAllThunk returns a function that when called will block waiting for a Authors.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *AgentsByAgentIdsLoader) LoadAllThunk(keys []string) func() ([]*models.Agent, []error) {
-	results := make([]func() (*models.Agent, error), len(keys))
+func (l *AuthorsByAgentIdsLoader) LoadAllThunk(keys []string) func() ([][]*models.Author, []error) {
+	results := make([]func() ([]*models.Author, error), len(keys))
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
-	return func() ([]*models.Agent, []error) {
-		agents := make([]*models.Agent, len(keys))
+	return func() ([][]*models.Author, []error) {
+		authors := make([][]*models.Author, len(keys))
 		errors := make([]error, len(keys))
 		for i, thunk := range results {
-			agents[i], errors[i] = thunk()
+			authors[i], errors[i] = thunk()
 		}
-		return agents, errors
+		return authors, errors
 	}
 }
 
 // Prime the cache with the provided key and value. If the key already exists, no change is made
 // and false is returned.
 // (To forcefully prime the cache, clear the key first with loader.clear(key).prime(key, value).)
-func (l *AgentsByAgentIdsLoader) Prime(key string, value *models.Agent) bool {
+func (l *AuthorsByAgentIdsLoader) Prime(key string, value []*models.Author) bool {
 	l.mu.Lock()
 	var found bool
 	if _, found = l.cache[key]; !found {
 		// make a copy when writing to the cache, its easy to pass a pointer in from a loop var
 		// and end up with the whole cache pointing to the same value.
-		cpy := *value
-		l.unsafeSet(key, &cpy)
+		cpy := make([]*models.Author, len(value))
+		copy(cpy, value)
+		l.unsafeSet(key, cpy)
 	}
 	l.mu.Unlock()
 	return !found
 }
 
 // Clear the value at key from the cache, if it exists
-func (l *AgentsByAgentIdsLoader) Clear(key string) {
+func (l *AuthorsByAgentIdsLoader) Clear(key string) {
 	l.mu.Lock()
 	delete(l.cache, key)
 	l.mu.Unlock()
 }
 
-func (l *AgentsByAgentIdsLoader) unsafeSet(key string, value *models.Agent) {
+func (l *AuthorsByAgentIdsLoader) unsafeSet(key string, value []*models.Author) {
 	if l.cache == nil {
-		l.cache = map[string]*models.Agent{}
+		l.cache = map[string][]*models.Author{}
 	}
 	l.cache[key] = value
 }
 
 // keyIndex will return the location of the key in the batch, if its not found
 // it will add the key to the batch
-func (b *agentsByAgentIdsLoaderBatch) keyIndex(l *AgentsByAgentIdsLoader, key string) int {
+func (b *authorsByAgentIdsLoaderBatch) keyIndex(l *AuthorsByAgentIdsLoader, key string) int {
 	for i, existingKey := range b.keys {
 		if key == existingKey {
 			return i
@@ -202,7 +203,7 @@ func (b *agentsByAgentIdsLoaderBatch) keyIndex(l *AgentsByAgentIdsLoader, key st
 	return pos
 }
 
-func (b *agentsByAgentIdsLoaderBatch) startTimer(l *AgentsByAgentIdsLoader) {
+func (b *authorsByAgentIdsLoaderBatch) startTimer(l *AuthorsByAgentIdsLoader) {
 	time.Sleep(l.wait)
 	l.mu.Lock()
 
@@ -218,7 +219,7 @@ func (b *agentsByAgentIdsLoaderBatch) startTimer(l *AgentsByAgentIdsLoader) {
 	b.end(l)
 }
 
-func (b *agentsByAgentIdsLoaderBatch) end(l *AgentsByAgentIdsLoader) {
+func (b *authorsByAgentIdsLoaderBatch) end(l *AuthorsByAgentIdsLoader) {
 	b.data, b.error = l.fetch(b.keys)
 	close(b.done)
 }

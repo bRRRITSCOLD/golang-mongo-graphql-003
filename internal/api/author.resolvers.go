@@ -19,7 +19,7 @@ func (r *authorResolver) Agent(ctx context.Context, obj *models.Author) (*models
 	if err != nil {
 		return nil, err
 	}
-	return r.DataLoaders.Retrieve(gc.Request.Context()).AgentsByAgentIds.Load(obj.AgentID)
+	return r.DataLoaders.Retrieve(gc.Request.Context()).AgentsByAuthorIds.Load(obj.AuthorID)
 }
 
 func (r *authorResolver) Books(ctx context.Context, obj *models.Author) ([]*models.Book, error) {

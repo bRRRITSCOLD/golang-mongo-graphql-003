@@ -5,16 +5,21 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"golang-mongo-graphql-003/internal/api/generated"
 	"golang-mongo-graphql-003/internal/data_management"
+	"golang-mongo-graphql-003/internal/middleware"
 	"golang-mongo-graphql-003/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 func (r *agentResolver) Authors(ctx context.Context, obj *models.Agent) ([]*models.Author, error) {
-	panic(fmt.Errorf("not implemented"))
+	// panic(fmt.Errorf("not implemented"))
+	gc, err := middleware.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.DataLoaders.Retrieve(gc.Request.Context()).AuthorsByAgentIds.Load(obj.AgentID)
 }
 
 func (r *mutationResolver) CreateAgent(ctx context.Context, input models.CreateAgentInput) (*models.Agent, error) {
