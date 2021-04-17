@@ -2,6 +2,9 @@ package dataloaders
 
 // go:generate go run github.com/vektah/dataloaden AgentsByAuthorIdsLoader string *golang-mongo-graphql-003/internal/models.Agent
 // go:generate go run github.com/vektah/dataloaden AuthorsByAgentIdsLoader string []*golang-mongo-graphql-003/internal/models.Author
+// go:generate go run github.com/vektah/dataloaden AuthorsByBookIdsLoader string []*golang-mongo-graphql-003/internal/models.Author
+// go:generate go run github.com/vektah/dataloaden BooksByAuthorIdsLoader string []*golang-mongo-graphql-003/internal/models.Author
+
 import (
 	"context"
 	"golang-mongo-graphql-003/internal/data_management"
@@ -21,12 +24,14 @@ type Loaders struct {
 	// individual loaders will be defined here
 	AgentsByAuthorIds *AgentsByAuthorIdsLoader
 	AuthorsByAgentIds *AuthorsByAgentIdsLoader
+	AuthorsByBookIds  *AuthorsByBookIdsLoader
 }
 
 func newLoaders(ctx context.Context) *Loaders {
 	return &Loaders{
 		AgentsByAuthorIds: newAgentsByAuthorIds(ctx),
 		AuthorsByAgentIds: newAuthorsByAgentIds(ctx),
+		AuthorsByBookIds:  newAuthorsByBookIds(ctx),
 	}
 }
 
@@ -102,6 +107,40 @@ func newAuthorsByAgentIds(ctx context.Context) *AuthorsByAgentIdsLoader {
 			result := make([][]*models.Author, len(agentIDs))
 			for i, agentID := range agentIDs {
 				result[i] = groupByAgentID[agentID]
+			}
+			return result, nil
+		},
+	})
+}
+
+func newAuthorsByBookIds(ctx context.Context) *AuthorsByBookIdsLoader {
+	return NewAuthorsByBookIdsLoader(AuthorsByBookIdsLoaderConfig{
+		MaxBatch: 100,
+		Wait:     5 * time.Millisecond,
+		Fetch: func(bookIDs []string) ([][]*models.Author, []error) {
+			authors, err := data_management.FindAuthors(bson.D{
+				bson.E{"bookIds", bson.D{
+					bson.E{"$in", bookIDs},
+				}},
+			})
+			if err != nil {
+				return nil, []error{err}
+			}
+			// group
+			groupByAuthorID := make(map[string][]*models.Author, len(bookIDs))
+			// TODO: group by bookid
+			for _, author := range authors {
+				for _, bookID := range bookIDs {
+					if utils.ContainsString(author.BookIDs, bookID) {
+						groupByAuthorID[bookID] = append(groupByAuthorID[bookID], models.PointerAuthor(author))
+					}
+				}
+				// groupByAuthorID[author.AuthorID] = append(groupByAuthorID[author.AuthorID], models.PointerAuthor(author))
+			}
+			// order
+			result := make([][]*models.Author, len(bookIDs))
+			for i, bookID := range bookIDs {
+				result[i] = groupByAuthorID[bookID]
 			}
 			return result, nil
 		},

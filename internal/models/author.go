@@ -13,12 +13,14 @@ type Author struct {
 	Name        string    `json:"name" bson:"name,omitempty"`
 	Website     string    `json:"website" bson:"website,omitempty"`
 	AgentID     string    `json:"agentId" bson:"agentId,omitempty"`
+	BookIDs     []string  `json:"bookIds" bson:"bookIds,omitempty"`
 }
 
 type CreateAuthorInput struct {
-	Name    string `json:"name"`
-	Website string `json:"website"`
-	AgentID string `json:"agentId"`
+	Name    string   `json:"name"`
+	Website string   `json:"website"`
+	AgentID string   `json:"agentId"`
+	BookIDs []string `json:"bookIds"`
 }
 
 func NewAuthor(author Author) Author {
@@ -30,6 +32,7 @@ func NewAuthor(author Author) Author {
 		Name:        author.Name,
 		Website:     author.Website,
 		AgentID:     author.AgentID,
+		BookIDs:     author.BookIDs,
 	}
 }
 
